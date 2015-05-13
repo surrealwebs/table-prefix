@@ -33,11 +33,11 @@ class Table_Prefix_Command extends WP_CLI_Command {
         $multi = (!empty($assoc_args['multi']) ? $assoc_args['multi'] : '');
 
         // regex used to verify table prefix
-        $default_regex = '/^[A-Za-z][A-Za-z0-9_]+$/';
+        $default_regex = '/^[A-Za-z][A-Za-z0-9\_]+$/';
 
-        $regex = (!empty($assoc_args['regex']) ? $assoc_args['regex'] : $default_prefix);
-
-        if (!preg_match($regex, $new)) {
+        $regex = (!empty($assoc_args['regex']) ? $assoc_args['regex'] : $default_regex);
+        $regres = preg_match($regex, $new);
+        if (!empty($regres)) {
             WP_CLI::error('New prefix is invalid', true);
         }
 
@@ -49,10 +49,13 @@ class Table_Prefix_Command extends WP_CLI_Command {
 
         $new_tables = array();
         foreach ($tables as $table) {
-            $new_tables[$table] = str_replace($old, $new, $table);
+            $new_tables[$table[0]] = str_replace($old, $new, $table[0]);
         }
 
+        // rename the tables
         $res = self::do_rename($new_tables);
+
+        // update the wp-config.php file to adjust the prefix there as well
 
         WP_CLI::success('Table prefix changed from "' . $old . '" to "' . $new . '"' . (!empty($multi) ? ' with multisite prefix "' . $multi . '"' : ''));
     }
@@ -74,7 +77,9 @@ class Table_Prefix_Command extends WP_CLI_Command {
     protected static function fetch_tables($prefix) {
         global $wpdb;
 
-        return $wpdb->query($wpdb->prepare("SHOW TABLES FROM " . DB_NAME . " LIKE '" . $prefix . "%'"));
+        $query = "SHOW TABLES LIKE '" . $prefix . "%'";
+
+        return $wpdb->get_results($query, ARRAY_N);
     }
 
     protected static function do_rename($tables) {
