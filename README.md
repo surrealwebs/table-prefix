@@ -13,6 +13,9 @@ show
 
 wp table-prefix change notwp_
 
+run as a one off (not added as a wp-cli command)
+    wp --require=../commands/table-prefix/table-prefix.php table-prefix change new_
+
 ##Future Enhancment Ideas
 
 * Enhanced multisite support, currently only changes main table prefix and doesn't allow you to change the site prefix (ex. wp_2_site can change to x_2_site but not wp_x_site)
