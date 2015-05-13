@@ -33,13 +33,15 @@ class Table_Prefix_Command extends WP_CLI_Command {
         $multi = (!empty($assoc_args['multi']) ? $assoc_args['multi'] : '');
 
         // regex used to verify table prefix
-        $default_regex = '/^[A-Za-z][A-Za-z0-9\_]+$/';
+        $default_regex = '/^[A-Za-z][A-Za-z0-9_]+$/';
 
         $regex = (!empty($assoc_args['regex']) ? $assoc_args['regex'] : $default_regex);
         $regres = preg_match($regex, $new);
+        /*
         if (!empty($regres)) {
             WP_CLI::error('New prefix is invalid', true);
         }
+         */
 
         $tables = self::fetch_tables($old.$multi);
 
@@ -56,6 +58,7 @@ class Table_Prefix_Command extends WP_CLI_Command {
         $res = self::do_rename($new_tables);
 
         // update the wp-config.php file to adjust the prefix there as well
+        self::update_wp_config($old, $new);
 
         WP_CLI::success('Table prefix changed from "' . $old . '" to "' . $new . '"' . (!empty($multi) ? ' with multisite prefix "' . $multi . '"' : ''));
     }
@@ -101,6 +104,29 @@ class Table_Prefix_Command extends WP_CLI_Command {
 
         return $wpdb->query($qry);
     }
+
+    protected static function update_wp_config($old_prefix, $new_prefix) {
+        $config_path = $_SERVER['DOCUMENT_ROOT'] . DIRECTORY_SEPARATOR;
+        $config_filename = $config_path . 'wp-config.php';
+
+        $content = file_get_contents($config_filename);
+
+        $new_content = str_replace(
+            array(
+                '"' . $old_prefix . '";',
+                "'" . $old_prefix . "';",
+            ),
+            array(
+                '"' . $new_prefix . '";',
+                "'" . $new_prefix . "';",
+            ),
+            $content
+        );
+
+        file_put_contents($config_path . 'wp-config.bak.php', $content);
+        file_put_contents($config_filename, $new_content);
+    }
+
 }
 
 WP_CLI::add_command( 'table-prefix', 'Table_Prefix_Command' );
